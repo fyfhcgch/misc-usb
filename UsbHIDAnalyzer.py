@@ -13,7 +13,7 @@ UsbHIDAnalyzer.py -- 统一 USB HID 取证分析工具
     https://github.com/IHK-001/CTF_MISC_script
       - UsbKeyboardDataAnalyse.py : 键盘解码 + 设备分离
       - UsbWacomAnalyse.py        : 数位板按前 2 字节分组 + X/Y 小端 16 位
-    以及本目录的 UsbMiceDataHacker.py : 鼠标轨迹 + 点阵栅格化
+    以及原 UsbMiceDataHacker 项目（WangYihang）的鼠标轨迹 + 点阵栅格化思路
 
 依赖：
     tshark (Wireshark)
