@@ -2,8 +2,7 @@
 
 从 USB 抓包中还原鼠标轨迹、键盘输入和数位板手写轨迹，常用于 CTF Misc、USB 取证和流量分析。
 
-- 单独分析鼠标：`UsbMiceDataHacker.py`
-- 统一分析鼠标 / 键盘 / 数位板：`UsbHIDAnalyzer.py`（推荐）
+统一分析鼠标 / 键盘 / 数位板：`UsbHIDAnalyzer.py`
 
 如果鼠标轨迹本身是用“点阵字体”绘制文字，还可以进一步还原出抓包中隐藏的字符串。
 
@@ -136,25 +135,6 @@ usbhid_out/
 
 ---
 
-## 鼠标专用工具：UsbMiceDataHacker.py
-
-`UsbMiceDataHacker.py` 保留原来的命令行形式，内部复用 `UsbHIDAnalyzer.py` 的自动布局与渲染逻辑；只分析鼠标时仍可继续使用。
-
-### 功能
-
-- 解析 pcap / pcapng 中的 USB HID 鼠标报告
-- 自动选择 4 字节、8 字节、12 位打包、广义位域等布局
-- 按按键类型分别绘制轨迹：
-  - `LEFT`：左键按下时的轨迹
-  - `RIGHT`：右键按下时的轨迹
-  - `MOVE`：仅移动（无按键）时的轨迹
-  - `ALL`：全部轨迹
-- 自动累加 `dx / dy`，还原鼠标在屏幕上的相对坐标
-- 自动识别“点阵式”轨迹并栅格化成清晰位图（避免轨迹被拉伸成横线）
-- 普通手写/轨迹按真实比例显示，不会被拉扁
-
----
-
 ## 环境依赖
 
 - Python 3
@@ -179,75 +159,6 @@ tshark -v
 
 > Linux 下如果提示找不到 tshark，请安装 `wireshark-cli` / `tshark` 软件包；
 > Windows 下请把 Wireshark 安装目录加入 `PATH`。
-
----
-
-## 快速开始
-
-```bash
-python3 UsbMiceDataHacker.py <pcap文件> [LEFT|RIGHT|MOVE|ALL]
-```
-
-示例：
-
-```bash
-# 绘制左键点击轨迹（最常用）
-python3 UsbMiceDataHacker.py data.pcap LEFT
-
-# 绘制完整轨迹
-python3 UsbMiceDataHacker.py data.pcap ALL
-
-# 绘制右键轨迹
-python3 UsbMiceDataHacker.py data.pcap RIGHT
-
-# 只绘制移动轨迹
-python3 UsbMiceDataHacker.py data.pcap MOVE
-```
-
-运行后会弹出一个 matplotlib 窗口显示轨迹图。
-
----
-
-## 参数说明
-
-| 参数 | 是否必填 | 说明 |
-| --- | --- | --- |
-| `pcap文件` | 是 | 待分析的 pcap / pcapng 文件路径 |
-| `动作` | 是 | `LEFT`、`RIGHT`、`MOVE`、`ALL` 之一；传入其他值时会自动按 `LEFT` 处理 |
-
-参数数量不正确时，脚本会打印用法并退出。
-
----
-
-## 输出说明
-
-- 轨迹图通过 `matplotlib` 弹窗显示，同时保存为 `mouse_<设备>_<动作>.png`。
-- 如果当前目录已经存在同名 PNG，它会被覆盖，请注意备份。
-
----
-
-## 无图形界面时保存为图片
-
-脚本默认使用 `plt.show()` 显示图片。在服务器、Docker、SSH 等无图形界面环境中，可以用下面的方式把图保存成 PNG：
-
-```python
-import sys
-import runpy
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-# 把 show() 替换成 savefig()
-plt.show = lambda *args, **kwargs: plt.savefig(
-    "result.png", dpi=150, bbox_inches="tight"
-)
-
-sys.argv = ["UsbMiceDataHacker.py", "data.pcap", "ALL"]
-runpy.run_path("UsbMiceDataHacker.py", run_name="__main__")
-```
-
-保存运行，例如 `python3 render.py`，即可得到 `result.png`。
 
 ---
 
@@ -279,10 +190,10 @@ tshark -r data.pcap -T fields -e usb.capdata
 因此现在直接运行：
 
 ```bash
-python3 UsbMiceDataHacker.py mouse_trajectory.pcap ALL
+python3 UsbHIDAnalyzer.py mouse_trajectory.pcap --type mouse
 ```
 
-即可看到清晰的点阵文字，而不是横线。
+即可在 `usbhid_out/` 中看到清晰的点阵文字，而不是横线。
 
 ### 3. `tshark: command not found`
 
@@ -296,7 +207,7 @@ python3 UsbMiceDataHacker.py mouse_trajectory.pcap ALL
 - `usbhid.data`：部分 USBPcap 抓包（例如 `flag.pcapng`）使用；
 - `btl2cap.payload`：蓝牙 HID（例如 USB 蓝牙接收器抓包）使用。
 
-`UsbHIDAnalyzer.py` 会依次读取这三个字段，并兼容带冒号（`00:0c:0c:00`）和不带冒号（`000c0c00`）两种格式。单独使用鼠标工具时如果只看到空数据，可以先用 `UsbHIDAnalyzer.py --list` 确认设备是否存在。
+`UsbHIDAnalyzer.py` 会依次读取这三个字段，并兼容带冒号（`00:0c:0c:00`）和不带冒号（`000c0c00`）两种格式。如果只看到空数据，可以先用 `python3 UsbHIDAnalyzer.py <pcap> --list` 确认设备是否存在。
 
 ### 5. 自动识别错了设备类型 / 鼠标布局
 
@@ -318,7 +229,7 @@ python3 UsbMiceDataHacker.py mouse_trajectory.pcap ALL
 
 得到的位图往往就是一行 5×7 点阵字体，可直接读出隐藏字符串。
 
-本仓库的测试样本 `mouse_trajectory.pcap` 即为此类：直接运行 `ALL` 或 `LEFT`，即可看到：
+本仓库的测试样本 `mouse_trajectory.pcap` 即为此类：直接运行统一工具即可看到：
 
 ```
 f08540829e577d6517b4ecf60de8e79a
@@ -342,9 +253,8 @@ f08540829e577d6517b4ecf60de8e79a
 ## 目录结构
 
 ```
-UsbMiceDataHacker/
+misc-usb/
 ├── UsbHIDAnalyzer.py      # 统一分析工具（键盘 / 鼠标 / 数位板）
-├── UsbMiceDataHacker.py   # 鼠标专用工具
 ├── requirements.txt       # Python 依赖
 ├── README.md              # 使用说明
 ├── data.pcap              # 示例抓包（键盘 + 鼠标 + 存储设备）
