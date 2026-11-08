@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+usbhid_out/
+usb.dat
+mouse_*.png
+tablet_*.png
+keyboard_*.txt
+summary.txt
+.DS_Store
